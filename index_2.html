@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CoachCRM">
+<title>CoachCRM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f4f0;--bg2:#fff;--bg3:#eeede9;
+  --text:#1a1a18;--text2:#6b6a65;--text3:#9c9a92;
+  --b:rgba(0,0,0,0.09);--b2:rgba(0,0,0,0.18);
+  --pu:#7F77DD;--pud:#534AB7;--pul:#EEEDFE;
+  --te:#0F6E56;--tel:#E1F5EE;
+  --am:#854F0B;--aml:#FAEEDA;
+  --co:#993C1D;--col:#FAECE7;
+  --re:#E24B4A;--rel:#FCEBEB;
+  --r:8px;--rl:12px;--nav:58px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1a1a18;--bg2:#242422;--bg3:#2c2c2a;
+  --text:#e8e6de;--text2:#9c9a92;--text3:#6b6a65;
+  --b:rgba(255,255,255,0.09);--b2:rgba(255,255,255,0.18);
+  --pul:#26215C;--tel:#04342C;--aml:#412402;--col:#4A1B0C;--rel:#501313;
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+
+/* LOADER */
+#loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999;}
+.spin{width:30px;height:30px;border:2.5px solid var(--b);border-top-color:var(--pu);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* LOGIN */
+#login{display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;z-index:500;padding:16px;}
+#login.on{display:flex;}
+.lbox{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:32px;width:100%;max-width:380px;}
+.lbox h1{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px;}
+.lbox p{font-size:13px;color:var(--text2);margin-bottom:22px;}
+.ltabs{display:flex;gap:3px;background:var(--bg3);padding:3px;border-radius:var(--r);margin-bottom:20px;}
+.ltab{flex:1;text-align:center;padding:7px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);transition:all .12s;}
+.ltab.on{background:var(--bg2);color:var(--text);font-weight:500;}
+.lf{margin-bottom:13px;}
+.lf label{display:block;font-size:12px;color:var(--text2);font-weight:500;margin-bottom:4px;}
+.lf input,.lf select{width:100%;padding:10px 12px;border:0.5px solid var(--b2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;font-size:15px;-webkit-appearance:none;}
+.lf input:focus,.lf select:focus{outline:none;border-color:var(--pu);}
+.lbtn{width:100%;padding:12px;background:var(--pu);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;margin-top:6px;}
+.lbtn:hover{background:var(--pud);}
+.lerr{font-size:12px;margin-top:8px;text-align:center;min-height:16px;}
+
+/* APP */
+.app{display:flex;height:100vh;height:100dvh;}
+
+/* SIDEBAR */
+.sidebar{width:210px;min-width:210px;background:var(--bg2);border-right:0.5px solid var(--b);display:flex;flex-direction:column;}
+.slogo{padding:16px;border-bottom:0.5px solid var(--b);}
+.slogo h2{font-size:15px;font-weight:600;letter-spacing:-.02em;}
+.slogo small{font-size:11px;color:var(--text2);}
+.suser{font-size:11px;color:var(--pu);margin-top:4px;font-weight:500;}
+.snav{padding:8px 0;flex:1;overflow-y:auto;}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:var(--text2);border-left:2px solid transparent;transition:all .12s;user-select:none;}
+.ni:hover{background:var(--bg3);color:var(--text);}
+.ni.on{background:var(--bg3);color:var(--text);border-left-color:var(--pu);font-weight:500;}
+.ni .ic{font-size:15px;width:18px;text-align:center;}
+.sdiv{height:0.5px;background:var(--b);margin:6px 16px;}
+.sfoot{padding:10px 16px;border-top:0.5px solid var(--b);}
+.ssync{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;margin-bottom:7px;}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--te);}
+.sdot.saving{background:var(--am);animation:pulse 1s infinite;}
+.sdot.err{background:var(--re);}
+.sout{width:100%;padding:7px;border:0.5px solid var(--b2);border-radius:var(--r);background:none;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;}
+.sout:hover{background:var(--rel);color:var(--re);border-color:var(--re);}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+.topbar{background:var(--bg2);border-bottom:0.5px solid var(--b);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar h1{font-size:15px;font-weight:500;}
+.topbar-r{display:flex;align-items:center;gap:8px;}
+.rbadge{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--pul);color:var(--pud);font-weight:500;}
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px;}
+
+/* PAGES */
+.pg{display:none;}.pg.on{display:block;}
+.slbl{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px;}
+
+/* BUTTONS */
+.btn{padding:7px 14px;border-radius:var(--r);border:0.5px solid var(--b2);background:transparent;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;transition:all .12s;touch-action:manipulation;}
+.btn:hover{background:var(--bg3);}
+.btn.pri{background:var(--pu);color:#fff;border-color:var(--pu);}
+.btn.pri:hover{background:var(--pud);}
+.btn.sm{padding:5px 10px;font-size:12px;}
+.btn.dan{color:var(--re);border-color:var(--rel);}
+.btn.dan:hover{background:var(--rel);}
+
+/* MOBILE NAV */
+.mobnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:var(--bg2);border-top:0.5px solid var(--b);z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.mobnav-inner{display:flex;height:100%;}
+.mni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--text2);cursor:pointer;padding:4px 2px;}
+.mni.on{color:var(--pu);}
+.mni-ic{font-size:22px;line-height:1;}
+
+/* SEARCH */
+.search-wrap{margin-bottom:14px;}
+.search-wrap input{width:100%;padding:10px 14px 10px 36px;border:0.5px solid var(--b2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:inherit;font-size:14px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239c9a92' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;}
+.search-wrap input:focus{outline:none;border-color:var(--pu);}
+
+/* TABLE */
+.tw{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);overflow:auto;-webkit-overflow-scrolling:touch;}
+.tw table{width:100%;border-collapse:collapse;min-width:500px;}
+.tw thead th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border-bottom:0.5px solid var(--b);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+.tw tbody td{padding:10px 12px;font-size:13px;border-bottom:0.5px solid var(--b);vertical-align:middle;}
+.tw tbody tr:last-child td{border-bottom:none;}
+.tw tbody tr:hover td{background:var(--bg3);}
+
+/* CARDS */
+.card{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:14px;margin-bottom:10px;}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.card-name{font-size:14px;font-weight:500;}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px;color:var(--text2);margin-bottom:10px;}
+.card-grid strong{color:var(--text);}
+.card-actions{display:flex;gap:6px;}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+.b-act{background:var(--tel);color:var(--te);}
+.b-s0{background:var(--aml);color:var(--am);}
+.b-off{background:var(--bg3);color:var(--text2);}
+
+/* DAY CHECKS */
+.dc{width:36px;height:36px;border-radius:8px;border:0.5px solid var(--b2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text3);user-select:none;touch-action:manipulation;margin:0 auto;transition:all .1s;}
+.dc:active{transform:scale(.88);}
+.dc.tr{background:var(--tel);border-color:var(--te);color:var(--te);font-weight:700;}
+.dc.vi{background:var(--pul);border-color:var(--pu);color:var(--pud);font-weight:700;}
+.dc.dl{background:var(--aml);border-color:var(--am);color:var(--am);font-weight:700;}
+
+/* TRACKING */
+.wnav{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.wlbl{font-size:13px;font-weight:500;flex:1;text-align:center;}
+.mtabs{display:flex;gap:3px;background:var(--bg3);padding:3px;border-radius:var(--r);margin-bottom:16px;overflow-x:auto;scrollbar-width:none;}
+.mtabs::-webkit-scrollbar{display:none;}
+.mt{padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text2);white-space:nowrap;flex-shrink:0;touch-action:manipulation;transition:all .12s;}
+.mt.on{background:var(--bg2);color:var(--text);font-weight:500;box-shadow:0 0 0 0.5px var(--b);}
+
+/* TRACK TABLE */
+.ttw{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);overflow:auto;-webkit-overflow-scrolling:touch;}
+.ttw table{width:100%;border-collapse:collapse;min-width:700px;}
+.ttw thead th{padding:9px 10px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border-bottom:0.5px solid var(--b);white-space:nowrap;}
+.ttw thead th:first-child{text-align:left;}
+.ttw tbody td{padding:8px 10px;font-size:13px;border-bottom:0.5px solid var(--b);vertical-align:middle;}
+.ttw tbody tr:last-child td{border-bottom:none;}
+
+/* TRACK CARDS (mobile) */
+.tcards{display:none;flex-direction:column;gap:10px;}
+.tcard{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:14px;}
+.tcard-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.tcard-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.tcard-dow{text-align:center;font-size:10px;color:var(--text3);font-weight:600;padding-bottom:3px;}
+.tcard-total{font-size:12px;color:var(--text2);margin-top:8px;text-align:right;}
+
+/* WEIGHT */
+.wi{width:78px;padding:7px 8px;border:0.5px solid var(--b2);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;text-align:center;}
+.wi:focus{outline:none;border-color:var(--pu);}
+.ci{flex:1;min-width:100px;padding:7px 8px;border:0.5px solid var(--b2);border-radius:6px;background:var(--bg);color:var(--text);font-family:inherit;font-size:12px;}
+.ci:focus{outline:none;border-color:var(--pu);}
+.wdn{color:var(--te);font-weight:600;font-size:12px;}
+.wup{color:var(--re);font-weight:600;font-size:12px;}
+.wcard{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:14px;margin-bottom:10px;}
+.wrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+.wlb{font-size:12px;color:var(--text2);min-width:100px;}
+.dlcard{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;}
+.calwrap{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;}
+.calhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.caltitle{font-size:14px;font-weight:500;}
+.calnav{display:flex;gap:5px;}
+.calnav button{width:28px;height:28px;border:0.5px solid var(--b2);border-radius:6px;background:none;color:var(--text);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.calnav button:hover{background:var(--bg3);}
+.caldows{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;}
+.caldow{text-align:center;font-size:10px;font-weight:600;color:var(--text3);padding:3px 0;text-transform:uppercase;}
+.caldays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cc{min-height:56px;border-radius:6px;padding:5px;border:0.5px solid transparent;background:var(--bg3);}
+.cc.hev{border-color:var(--b);background:var(--bg2);}
+.cc.tod{border-color:var(--pu)!important;background:var(--bg2);}
+.cc.emp{background:transparent;border-color:transparent;}
+.ccn{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:500;}
+.cc.tod .ccn{color:var(--pu);font-weight:700;}
+.cev{font-size:9px;padding:2px 4px;border-radius:3px;margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.em{background:var(--tel);color:var(--te);}
+.ep{background:var(--pul);color:var(--pud);}
+.ee{background:var(--aml);color:var(--am);}
+.calleg{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.calleg-i{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.calleg-d{width:9px;height:9px;border-radius:2px;}
+.clpanel{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;}
+.cli{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--b);}
+.cli:last-child{border-bottom:none;padding-bottom:0;}
+.clck{width:18px;height:18px;min-width:18px;border:0.5px solid var(--b2);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:2px;font-size:10px;touch-action:manipulation;}
+.clck.dn{background:var(--te);border-color:var(--te);color:#fff;}
+.clinfo{flex:1;}
+.cltask{font-size:13px;}
+.cltask.dn{text-decoration:line-through;color:var(--text2);}
+.cldate{font-size:11px;margin-top:2px;}
+.cldate.ov{color:var(--re);font-weight:500;}
+.cldate.sn{color:var(--am);font-weight:500;}
+.cldate.ok{color:var(--te);}
+
+/* OKRs */
+.okr-wn{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.okr-wl{font-size:13px;font-weight:500;flex:1;text-align:center;}
+.okr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:24px;}
+.okrc{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;}
+.okrl{font-size:11px;color:var(--text2);margin-bottom:8px;}
+.okrv{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1;}
+.okrs{font-size:11px;color:var(--text3);margin-top:4px;}
+.okrp{font-size:12px;color:var(--text2);margin-top:5px;}
+.okrbar{height:4px;background:var(--bg3);border-radius:3px;margin-top:10px;overflow:hidden;}
+.okrfill{height:100%;border-radius:3px;transition:width .4s;}
+
+/* HC */
+.hc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px;}
+.hcc{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:14px;}
+.hcl{font-size:11px;color:var(--text2);margin-bottom:6px;}
+.hcv{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1;}
+.hcs{font-size:11px;color:var(--text3);margin-top:4px;}
+.coachblock{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);margin-bottom:14px;overflow:hidden;}
+.cbhdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.cbhdr:hover{background:var(--bg3);}
+.cbleft{display:flex;align-items:center;gap:10px;}
+.cbinfo h4{font-size:14px;font-weight:500;margin-bottom:1px;}
+.cbinfo small{font-size:11px;color:var(--text2);}
+.cbarrow{font-size:12px;color:var(--text3);transition:transform .2s;}
+.cbarrow.op{transform:rotate(90deg);}
+.cbbody{display:none;border-top:0.5px solid var(--b);}
+.cbbody.op{display:block;}
+.cbclient{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:0.5px solid var(--b);}
+.cbclient:last-of-type{border-bottom:none;}
+.cbcinfo{flex:1;}
+.cbcname{font-size:13px;font-weight:500;}
+.cbcmeta{font-size:11px;color:var(--text2);margin-top:1px;}
+.cbadd{display:flex;align-items:center;gap:6px;padding:10px 16px;font-size:13px;color:var(--pu);cursor:pointer;font-weight:500;border-top:0.5px solid var(--b);}
+.cbadd:hover{background:var(--pul);}
+
+/* COACHES */
+.add-box{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:20px;margin-bottom:20px;}
+.add-box h3{font-size:14px;font-weight:500;margin-bottom:16px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.fr{display:flex;flex-direction:column;gap:4px;}
+.fr label{font-size:12px;color:var(--text2);font-weight:500;}
+.fr input,.fr select{padding:8px 10px;border:0.5px solid var(--b2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;}
+.fr input:focus,.fr select:focus{outline:none;border-color:var(--pu);}
+.crow{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:0.5px solid var(--b);}
+.crow:last-child{border-bottom:none;}
+.cav{width:36px;height:36px;border-radius:50%;background:var(--pul);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--pud);flex-shrink:0;}
+.cinfo{flex:1;}
+.cname{font-size:13px;font-weight:500;}
+.cemail{font-size:11px;color:var(--text2);}
+.crole{font-size:10px;padding:2px 7px;border-radius:20px;}
+.rhc{background:var(--aml);color:var(--am);}
+.rco{background:var(--pul);color:var(--pud);}
+
+/* REQUESTS */
+.ai-box{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;margin-bottom:16px;}
+.ai-box h3{font-size:13px;font-weight:500;margin-bottom:10px;color:var(--text2);}
+.ai-box textarea{width:100%;padding:9px 12px;border:0.5px solid var(--b2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;font-size:13px;resize:none;height:80px;margin-bottom:10px;}
+.ai-box textarea:focus{outline:none;border-color:var(--pu);}
+.ai-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.ai-row select{flex:1;min-width:140px;padding:8px 10px;border:0.5px solid var(--b2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:inherit;font-size:13px;}
+.rsec{background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;margin-bottom:12px;}
+.rsec h3{font-size:13px;font-weight:500;margin-bottom:12px;}
+.ri{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--b);}
+.ri:last-child{border-bottom:none;padding-bottom:0;}
+.rck{width:20px;height:20px;min-width:20px;border:0.5px solid var(--b2);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:1px;font-size:11px;touch-action:manipulation;}
+.rck.dn{background:var(--pu);border-color:var(--pu);color:#fff;}
+.rinfo{flex:1;}
+.rtask{font-size:13px;font-weight:500;}
+.rtask.dn{text-decoration:line-through;color:var(--text2);}
+.rdesc{font-size:12px;color:var(--text2);margin-top:2px;}
+.rcl{font-size:11px;color:var(--pu);margin-top:3px;}
+
+/* MODAL */
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:200;align-items:flex-end;justify-content:center;}
+.mbg.on{display:flex;}
+.modal{background:var(--bg2);border-radius:var(--rl) var(--rl) 0 0;border:0.5px solid var(--b);padding:24px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;}
+.modal h2{font-size:16px;font-weight:500;margin-bottom:18px;}
+.mfr{margin-bottom:13px;}
+.mfr label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+.mfr input,.mfr select{width:100%;padding:10px 12px;border:0.5px solid var(--b2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:inherit;font-size:15px;-webkit-appearance:none;}
+.mfr input:focus,.mfr select:focus{outline:none;border-color:var(--pu);}
+.mg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.mg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:0.5px solid var(--b);}
+.mdiv{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin:14px 0 10px;padding-top:14px;border-top:0.5px solid var(--b);}
+.minfo{padding:10px 12px;background:var(--pul);border-radius:var(--r);margin-bottom:12px;font-size:12px;color:var(--pud);font-weight:500;display:none;}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 24px;color:var(--text2);}
+.eico{font-size:32px;margin-bottom:10px;}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .mobnav{display:flex;}
+  .content{padding:14px;padding-bottom:calc(var(--nav) + 14px);}
+  .topbar{padding:10px 14px;}
+  .dash-grid{grid-template-columns:1fr;gap:14px;}
+  .hc-grid{grid-template-columns:1fr 1fr;}
+  .okr-grid{grid-template-columns:1fr 1fr;}
+  .ttw{display:none;}
+  .tcards{display:flex!important;}
+  .mg3{grid-template-columns:1fr;}
+  .fg{grid-template-columns:1fr;}
+  .cc{min-height:42px;}
+  .cev{font-size:8px;}
+}
+@media(min-width:769px) and (max-width:1024px){
+  .sidebar{width:180px;min-width:180px;}
+  .dash-grid{grid-template-columns:1fr 260px;}
+  .hc-grid{grid-template-columns:1fr 1fr;}
+  .content{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><div class="spin"></div><div style="font-size:13px;color:var(--text2)">Cargando...</div></div>
+
+<div id="login">
+  <div class="lbox">
+    <h1>CoachCRM</h1>
+    <p>Panel de entrenamiento</p>
+    <div class="ltabs">
+      <div class="ltab on" id="lt-in" onclick="ltab('in')">Entrar</div>
+      <div class="ltab" id="lt-reg" onclick="ltab('reg')">Crear cuenta</div>
+    </div>
+    <div id="lf-in">
+      <div class="lf"><label>Email</label><input type="email" id="li-email" placeholder="tu@email.com" autocomplete="email"></div>
+      <div class="lf"><label>Contraseña</label><input type="password" id="li-pass" placeholder="••••••••"></div>
+      <button class="lbtn" id="li-btn" onclick="doLogin()">Entrar</button>
+    </div>
+    <div id="lf-reg" style="display:none">
+      <div class="lf"><label>Nombre completo</label><input type="text" id="rg-name" placeholder="Ana García"></div>
+      <div class="lf"><label>Email</label><input type="email" id="rg-email" placeholder="tu@email.com"></div>
+      <div class="lf"><label>Contraseña</label><input type="password" id="rg-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="lf"><label>Rol</label>
+        <select id="rg-role"><option value="coach">Entrenador/a</option><option value="head_coach">Head Coach</option></select>
+      </div>
+      <button class="lbtn" id="rg-btn" onclick="doRegister()">Crear cuenta</button>
+    </div>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
+  <div class="sidebar">
+    <div class="slogo">
+      <h2>CoachCRM</h2>
+      <small>Panel de entrenamiento</small>
+      <div class="suser" id="suser"></div>
+    </div>
+    <nav class="snav" id="snav"></nav>
+    <div class="sfoot">
+      <div class="ssync"><div class="sdot" id="sdot"></div><span id="slbl">Sincronizado</span></div>
+      <button class="sout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <h1 id="ptitle">Dashboard</h1>
+      <div class="topbar-r"><span class="rbadge" id="rbadge"></span><div id="tact"></div></div>
+    </div>
+    <div class="content">
+
+      <!-- HC OVERVIEW -->
+      <div class="pg" id="pg-hc-overview">
+        <div class="okr-wn">
+          <button class="btn" onclick="okrNav(-1)">←</button>
+          <div class="okr-wl" id="hc-week-lbl"></div>
+          <button class="btn" onclick="okrNav(1)">→</button>
+        </div>
+        <div class="slbl">Métricas globales</div>
+        <div class="hc-grid" id="hc-cards"></div>
+        <div class="slbl">OKRs por entrenador</div>
+        <div id="hc-coaches"></div>
+      </div>
+
+      <!-- HC ENTRENADORES -->
+      <div class="pg" id="pg-hc-coaches">
+        <div class="add-box">
+          <h3>Crear cuenta de entrenador/a</h3>
+          <div class="fg">
+            <div class="fr"><label>Nombre completo</label><input type="text" id="nc-name" placeholder="Laura Martínez"></div>
+            <div class="fr"><label>Email</label><input type="email" id="nc-email" placeholder="laura@empresa.com"></div>
+            <div class="fr"><label>Contraseña inicial</label><input type="text" id="nc-pass" placeholder="Mínimo 6 caracteres"></div>
+            <div class="fr"><label>Rol</label>
+              <select id="nc-role"><option value="coach">Entrenador/a</option><option value="head_coach">Head Coach</option></select>
+            </div>
+          </div>
+          <button class="btn pri" onclick="createCoach()">Crear cuenta</button>
+          <div id="nc-st" style="font-size:12px;margin-top:8px;display:none;"></div>
+        </div>
+        <div class="slbl">Equipo actual</div>
+        <div id="coaches-list"></div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="pg on" id="pg-dashboard">
+        <div class="dash-grid">
+          <div>
+            <div class="slbl">Calendario de entregas</div>
+            <div class="calwrap">
+              <div class="calhdr">
+                <span class="caltitle" id="cal-title"></span>
+                <div class="calnav"><button onclick="calNav(-1)">‹</button><button onclick="calNav(1)">›</button></div>
+              </div>
+              <div class="caldows" id="cal-dows"></div>
+              <div class="caldays" id="cal-days"></div>
+              <div class="calleg">
+                <div class="calleg-i"><div class="calleg-d em"></div>Menú</div>
+                <div class="calleg-i"><div class="calleg-d ep"></div>Planificación</div>
+                <div class="calleg-i"><div class="calleg-d ee"></div>Fin contrato</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="slbl">Entregables próx. 2 semanas</div>
+            <div class="clpanel"><div id="delivs"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OKRs -->
+      <div class="pg" id="pg-okrs">
+        <div class="okr-wn">
+          <button class="btn" onclick="okrNav(-1)">←</button>
+          <div class="okr-wl" id="okr-lbl"></div>
+          <button class="btn" onclick="okrNav(1)">→</button>
+        </div>
+        <div class="okr-grid" id="okr-grid"></div>
+        <div class="slbl">Detalle por clienta</div>
+        <div id="okr-detail"></div>
+      </div>
+
+      <!-- CLIENTES -->
+      <div class="pg" id="pg-clientes">
+        <div class="search-wrap"><input type="search" id="csearch" placeholder="Buscar clienta..." oninput="renderClients()"></div>
+        <div id="clients-wrap"></div>
+      </div>
+
+      <!-- SEGUIMIENTO -->
+      <div class="pg" id="pg-seguimiento">
+        <div class="search-wrap"><input type="search" id="tsearch" placeholder="Buscar clienta..." oninput="renderTracking()"></div>
+        <div class="wnav">
+          <button class="btn" onclick="wNav(-1)">←</button>
+          <div class="wlbl" id="w-lbl"></div>
+          <button class="btn" onclick="wNav(1)">→</button>
+        </div>
+        <div class="mtabs">
+          <div class="mt on" onclick="setMode('train',this)">🏋️ Entrenamiento</div>
+          <div class="mt" onclick="setMode('video',this)">📹 Vídeos</div>
+          <div class="mt" onclick="setMode('weight',this)">⚖️ Peso</div>
+          <div class="mt" onclick="setMode('dl',this)">🏆 Peso muerto</div>
+        </div>
+        <div class="ttw" id="ttable"></div>
+        <div class="tcards" id="tcards"></div>
+      </div>
+
+      <!-- SOLICITUDES -->
+      <div class="pg" id="pg-solicitudes">
+        <div class="ai-box">
+          <h3>📱 Pega un mensaje de WhatsApp — la IA crea el checklist</h3>
+          <textarea id="wa-msg" placeholder="Ej: Necesito cambiar mi dieta..."></textarea>
+          <div class="ai-row">
+            <select id="wa-cl"></select>
+            <button class="btn pri" onclick="analyzeWA()">Analizar →</button>
+          </div>
+          <div id="wa-st" style="font-size:12px;color:var(--text2);margin-top:8px;display:none;"></div>
+        </div>
+        <div id="reqs-wrap"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<div class="mobnav" id="mobnav" style="display:none">
+  <div class="mobnav-inner" id="mobnav-inner"></div>
+</div>
+
+<!-- MODAL -->
+<div class="mbg" id="mbg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modal-title">Añadir clienta</h2>
+    <div class="minfo" id="modal-info"></div>
+    <div class="mfr" id="modal-coach-row" style="display:none">
+      <label>Entrenador/a asignado</label>
+      <select id="modal-coach"></select>
+    </div>
+    <div class="mg2">
+      <div class="mfr"><label>Nombre *</label><input type="text" id="fn" placeholder="Ana"></div>
+      <div class="mfr"><label>Apellido</label><input type="text" id="fs" placeholder="García"></div>
+    </div>
+    <div class="mg2">
+      <div class="mfr"><label>Teléfono</label><input type="tel" id="fph" placeholder="+34 600..."></div>
+      <div class="mfr"><label>Duración</label>
+        <select id="fdu"><option value="3">3 meses</option><option value="6">6 meses</option><option value="12">12 meses</option></select>
+      </div>
+    </div>
+    <div class="mdiv">Fechas</div>
+    <div class="mg3">
+      <div class="mfr"><label>Inicio *</label><input type="date" id="fst"></div>
+      <div class="mfr"><label>1ª entrega menú</label><input type="date" id="fm1"></div>
+      <div class="mfr"><label>1ª planificación</label><input type="date" id="fp1"></div>
+    </div>
+    <div class="mdiv">Datos físicos</div>
+    <div class="mg2">
+      <div class="mfr"><label>Peso inicial (kg)</label><input type="number" id="fwi" placeholder="70" step="0.1" inputmode="decimal"></div>
+      <div class="mfr"><label>Estado</label>
+        <select id="fst2"><option value="activo">Activo</option><option value="semana0">Semana 0</option><option value="inactivo">Inactivo</option></select>
+      </div>
+    </div>
+    <div class="mfr"><label>Notas</label><input type="text" id="fno" placeholder="Observaciones..."></div>
+    <div class="mfoot">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn pri" onclick="saveClient()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://zhbgdyavnmvwxlptvmgv.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoYmdkeWF2bm12d3hscHR2bWd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0ODY0MTgsImV4cCI6MjA4OTA2MjQxOH0.idFW0XrBYJoT6POF1ZbUQyDpB8ovAIRW29wMRMR25x0';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+// STATE
+let user=null,profile=null,clients=[],tracking={},requests=[],profiles=[];
+let weekOff=0,okrOff=0,calOff=0,tmode='train',curPage='dashboard';
+let editId=null,modalCoachId=null;
+let delivDone={};
+
+const DAYS=['L','M','X','J','V','S','D'];
+const DAYS_F=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const WF=['mon','tue','wed','thu','fri','sat','sun'];
+
+const $=id=>document.getElementById(id);
+const isHC=()=>profile?.role==='head_coach';
+const isMob=()=>window.innerWidth<=768;
+const dk=d=>d.toISOString().split('T')[0];
+function monWeek(off=0){const n=new Date(),dw=n.getDay()||7,m=new Date(n);m.setDate(n.getDate()-dw+1+off*7);m.setHours(0,0,0,0);return m;}
+function weekDates(off=0){const m=monWeek(off);return Array.from({length:7},(_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d;});}
+function cWeek(c){if(!c.start_date)return 0;return Math.max(0,Math.floor((new Date()-new Date(c.start_date))/(7*86400000)));}
+function cStatus(c){const w=cWeek(c);if(c.status==='inactivo')return{l:'Inactivo',cls:'b-off'};if(w===0)return{l:'Semana 0',cls:'b-s0'};return{l:'Activo',cls:'b-act'};}
+function fname(c){return c.surname?c.name+' '+c.surname:c.name;}
+function latW(cid){const r=Object.values(tracking).filter(x=>x.client_id===cid&&x.weight!=null);if(!r.length)return null;r.sort((a,b)=>a.week_start.localeCompare(b.week_start));return r[r.length-1].weight;}
+function totLoss(c){if(!c.weight_init)return null;const lw=latW(c.id);if(lw===null)return null;return c.weight_init-lw;}
+function sync(s){const d=$('sdot'),l=$('slbl');if(!d)return;d.className='sdot'+(s==='saving'?' saving':s==='err'?' err':'');l.textContent=s==='saving'?'Guardando...':s==='err'?'Error':'Sincronizado';}
+function tk(cid,ws){return`${cid}_${ws}`;}
+function activeClients(){return clients.filter(c=>c.status!=='inactivo');}
+
+// AUTH
+function ltab(t){
+  ['in','reg'].forEach(x=>{$('lt-'+x).classList.toggle('on',x===t);$('lf-'+x).style.display=x===t?'block':'none';});
+  $('lerr').textContent='';
+}
+async function doLogin(){
+  const email=$('li-email').value.trim(),pass=$('li-pass').value;
+  $('lerr').textContent='';
+  if(!email||!pass){$('lerr').textContent='Rellena email y contraseña';return;}
+  const btn=$('li-btn');btn.textContent='Entrando...';btn.disabled=true;
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  btn.textContent='Entrar';btn.disabled=false;
+  if(error){$('lerr').style.color='var(--re)';$('lerr').textContent='Email o contraseña incorrectos';return;}
+  await afterLogin(data.user);
+}
+async function doRegister(){
+  const name=$('rg-name').value.trim(),email=$('rg-email').value.trim(),pass=$('rg-pass').value,role=$('rg-role').value;
+  $('lerr').textContent='';
+  if(!name||!email||!pass){$('lerr').textContent='Rellena todos los campos';return;}
+  if(pass.length<6){$('lerr').textContent='Contraseña mínimo 6 caracteres';return;}
+  const btn=$('rg-btn');btn.textContent='Creando...';btn.disabled=true;
+  const{data,error}=await sb.auth.signUp({email,password:pass});
+  btn.textContent='Crear cuenta';btn.disabled=false;
+  if(error){$('lerr').style.color='var(--re)';$('lerr').textContent=error.message;return;}
+  if(data.user){
+    await sb.from('profiles').upsert({id:data.user.id,name,role,email});
+    $('lerr').style.color='var(--te)';$('lerr').textContent='✓ Cuenta creada. Entrando...';
+    setTimeout(()=>afterLogin(data.user),800);
+  }
+}
+async function afterLogin(u){
+  user=u;
+  let{data:prof}=await sb.from('profiles').select('*').eq('id',u.id).single();
+  if(!prof){await sb.from('profiles').insert({id:u.id,name:u.email,role:'coach'});prof={id:u.id,name:u.email,role:'coach'};}
+  profile=prof;
+  $('login').classList.remove('on');
+  $('app').style.display='flex';
+  $('mobnav').style.display=isMob()?'flex':'none';
+  await loadAll();
+  setupNav();
+  goPage(isHC()?'hc-overview':'dashboard');
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  user=null;profile=null;clients=[];tracking={};requests=[];profiles=[];
+  $('app').style.display='none';$('mobnav').style.display='none';
+  $('login').classList.add('on');
+}
+
+// LOAD
+async function loadAll(){
+  try{
+    const clientQuery=isHC()?sb.from('clients').select('*').order('created_at'):sb.from('clients').select('*').eq('coach_id',user.id).order('created_at');
+    const[{data:c},{data:t},{data:r},{data:p}]=await Promise.all([
+      clientQuery,
+      sb.from('tracking').select('*'),
+      sb.from('requests').select('*').order('created_at'),
+      sb.from('profiles').select('*')
+    ]);
+    clients=c||[];tracking={};
+    (t||[]).forEach(row=>{tracking[tk(row.client_id,row.week_start)]=row;});
+    requests=r||[];profiles=p||[];
+    try{const s=localStorage.getItem('dd_'+user.id);if(s)delivDone=JSON.parse(s);}catch(e){}
+  }catch(e){sync('err');}
+}
+
+// NAV
+function setupNav(){
+  $('suser').textContent=profile?.name||user?.email||'';
+  $('rbadge').textContent=isHC()?'Head Coach':'Entrenador/a';
+  const coachNav=[
+    {id:'dashboard',ic:'📅',l:'Dashboard'},
+    {id:'okrs',ic:'📊',l:'OKRs'},
+    {id:'clientes',ic:'👤',l:'Clientes'},
+    {id:'seguimiento',ic:'🏋️',l:'Seguimiento'},
+    {id:'solicitudes',ic:'✅',l:'Solicitudes'},
+  ];
+  const hcNav=[
+    {id:'hc-overview',ic:'📊',l:'Visión global'},
+    {id:'hc-coaches',ic:'👥',l:'Entrenadores'},
+    {id:'clientes',ic:'👤',l:'Clientes'},
+  ];
+  const items=isHC()?hcNav:coachNav;
+  $('snav').innerHTML=items.map(n=>n.div?'<div class="sdiv"></div>':`<div class="ni" data-p="${n.id}" onclick="goPage('${n.id}')"><span class="ic">${n.ic}</span>${n.l}</div>`).join('');
+  $('mobnav-inner').innerHTML=items.filter(n=>!n.div).map(n=>`<div class="mni" data-p="${n.id}" onclick="goPage('${n.id}')"><div class="mni-ic">${n.ic}</div><span>${n.l}</span></div>`).join('');
+}
+function goPage(name){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('[data-p]').forEach(n=>n.classList.remove('on'));
+  $('pg-'+name)?.classList.add('on');
+  document.querySelectorAll(`[data-p="${name}"]`).forEach(n=>n.classList.add('on'));
+  const titles={dashboard:'Dashboard','hc-overview':'Visión global','hc-coaches':'Entrenadores',okrs:'OKRs',clientes:'Clientes',seguimiento:'Seguimiento',solicitudes:'Solicitudes'};
+  $('ptitle').textContent=titles[name]||name;
+  $('tact').innerHTML=name==='clientes'?'<button class="btn pri" onclick="openModal()">+ Añadir</button>':'';
+  curPage=name;
+  const renders={dashboard:renderDash,'hc-overview':renderHCOverview,'hc-coaches':renderHCCoaches,okrs:renderOKRs,clientes:renderClients,seguimiento:renderTracking,solicitudes:renderRequests};
+  renders[name]?.();
+}
+
+// DELIVERABLES
+function buildDelivs(){
+  const items=[];
+  for(const c of clients){
+    if(!c.start_date||c.status==='inactivo')continue;
+    const st=new Date(c.start_date),mo=parseInt(c.duration||3);
+    const en=new Date(st);en.setMonth(en.getMonth()+mo);
+    const mb=c.menu1_date?new Date(c.menu1_date):new Date(st);
+    const pb=c.plan1_date?new Date(c.plan1_date):new Date(st);
+    if(!c.plan1_date)pb.setDate(pb.getDate()+14);
+    for(let w=0;;w++){const d=new Date(mb);d.setDate(mb.getDate()+w*28);if(d>en)break;items.push({client:fname(c),cid:c.id,type:'menu',date:new Date(d),label:'Entrega de menú'});}
+    for(let w=0;;w++){const d=new Date(pb);d.setDate(pb.getDate()+w*28);if(d>en)break;items.push({client:fname(c),cid:c.id,type:'plan',date:new Date(d),label:'Planificación'});}
+  }
+  items.sort((a,b)=>a.date-b.date);return items;
+}
+function dkd(item){return`${item.cid}_${item.type}_${dk(item.date)}`;}
+function toggleDeliv(k){delivDone[k]=!delivDone[k];try{localStorage.setItem('dd_'+user.id,JSON.stringify(delivDone));}catch(e){}renderDelivs();}
+function renderDelivs(){
+  const all=buildDelivs(),today=new Date();today.setHours(0,0,0,0);
+  const from=new Date(today);from.setDate(from.getDate()-14);
+  const to=new Date(today);to.setDate(to.getDate()+14);
+  const rel=all.filter(i=>i.date>=from&&i.date<=to);
+  if(!rel.length){$('delivs').innerHTML='<div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px">Sin entregas en las próximas 2 semanas</div>';return;}
+  const pend=rel.filter(i=>!delivDone[dkd(i)]);
+  const done=rel.filter(i=>delivDone[dkd(i)]);
+  const ri=item=>{
+    const k=dkd(item),isDone=!!delivDone[k];
+    const diff=Math.round((item.date-today)/86400000);
+    let dl='',dc='cldate ok';
+    if(diff<0){dl=`Hace ${Math.abs(diff)}d`;dc='cldate ov';}
+    else if(diff===0){dl='Hoy';dc='cldate sn';}
+    else if(diff<=7){dl=`En ${diff}d`;dc='cldate sn';}
+    else{dl=item.date.toLocaleDateString('es-ES',{day:'numeric',month:'short'});dc='cldate ok';}
+    const ico=item.type==='menu'?'🥗':'📋';
+    return`<div class="cli"><div class="clck ${isDone?'dn':''}" onclick="toggleDeliv('${k}')">${isDone?'✓':''}</div><div class="clinfo"><div class="cltask ${isDone?'dn':''}">${ico} ${item.label} — ${item.client}</div><div class="${dc}">${dl}</div></div></div>`;
+  };
+  let html=pend.map(ri).join('');
+  if(done.length)html+=`<div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--b);font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Completadas</div>`+done.map(ri).join('');
+  $('delivs').innerHTML=html||'<div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px">Todo al día ✓</div>';
+}
+
+// DASHBOARD
+function renderCal(){
+  const now=new Date(),tgt=new Date(now.getFullYear(),now.getMonth()+calOff,1);
+  $('cal-title').textContent=`${MONTHS[tgt.getMonth()]} ${tgt.getFullYear()}`;
+  $('cal-dows').innerHTML=DAYS.map(d=>`<div class="caldow">${d}</div>`).join('');
+  const fdow=(new Date(tgt.getFullYear(),tgt.getMonth(),1).getDay()||7);
+  const last=new Date(tgt.getFullYear(),tgt.getMonth()+1,0).getDate();
+  const today=dk(new Date());
+  const evts={};
+  const ae=(d,ev)=>{const k=dk(d);if(!evts[k])evts[k]=[];evts[k].push(ev);};
+  for(const c of clients){
+    if(!c.start_date||c.status==='inactivo')continue;
+    const st=new Date(c.start_date),mo=parseInt(c.duration||3);
+    const en=new Date(st);en.setMonth(en.getMonth()+mo);
+    ae(en,{l:`Fin: ${c.name}`,cls:'ee'});
+    const mb=c.menu1_date?new Date(c.menu1_date):new Date(st);
+    for(let w=0;;w++){const d=new Date(mb);d.setDate(mb.getDate()+w*28);if(d>en)break;ae(d,{l:`Menú: ${c.name}`,cls:'em'});}
+    const pb=c.plan1_date?new Date(c.plan1_date):new Date(st);
+    if(!c.plan1_date)pb.setDate(pb.getDate()+14);
+    for(let w=0;;w++){const d=new Date(pb);d.setDate(pb.getDate()+w*28);if(d>en)break;ae(d,{l:`Plan: ${c.name}`,cls:'ep'});}
+  }
+  let cells=Array(fdow-1).fill(null);
+  for(let d=1;d<=last;d++)cells.push(new Date(tgt.getFullYear(),tgt.getMonth(),d));
+  while(cells.length%7)cells.push(null);
+  $('cal-days').innerHTML=cells.map(d=>{
+    if(!d)return'<div class="cc emp"></div>';
+    const k=dk(d),evs=(evts[k]||[]).slice(0,3),isToday=k===today;
+    return`<div class="cc ${evs.length?'hev':''} ${isToday?'tod':''}"><div class="ccn">${d.getDate()}</div>${evs.map(e=>`<div class="cev ${e.cls}">${e.l}</div>`).join('')}</div>`;
+  }).join('');
+  renderDelivs();
+}
+function calNav(d){calOff+=d;renderCal();}
+function renderDash(){renderCal();}
+
+// HC OVERVIEW
+function calcM(cl){
+  const wks=dk(monWeek(okrOff));
+  const active=cl.filter(c=>c.status!=='inactivo'&&cWeek(c)>0);
+  let t3=0,v3=0,l12=0,dl30=0;
+  for(const c of active){
+    const r=tracking[tk(c.id,wks)]||{};
+    const tr=WF.filter(f=>r[f+'_train']).length;
+    const vi=WF.filter(f=>r[f+'_video']).length;
+    if(tr>=3){t3++;if(vi>=3)v3++;}
+    if(r.deadlift30)dl30++;
+    const loss=totLoss(c);if(loss!==null&&loss>=12)l12++;
+  }
+  return{total:active.length,t3,v3,l12,dl30};
+}
+function pct(n,t){return t>0?Math.round(n/t*100):0;}
+
+function renderHCOverview(){
+  const wks=dk(monWeek(0));
+  const m=calcM(clients);
+  $('hc-cards').innerHTML=`
+    <div class="hcc"><div class="hcl">Total activas</div><div class="hcv" style="color:var(--pu)">${m.total}</div><div class="hcs">en todo el equipo</div></div>
+    <div class="hcc"><div class="hcl">Entrenan 3+ días</div><div class="hcv" style="color:var(--te)">${pct(m.t3,m.total)}%</div><div class="hcs">${m.t3} de ${m.total}</div></div>
+    <div class="hcc"><div class="hcl">Vídeo 3 días</div><div class="hcv" style="color:var(--pu)">${pct(m.v3,m.total)}%</div><div class="hcs">${m.v3} de ${m.total}</div></div>
+    <div class="hcc"><div class="hcl">Perdieron 12+ kg</div><div class="hcv" style="color:var(--co)">${pct(m.l12,m.total)}%</div><div class="hcs">${m.l12} de ${m.total}</div></div>
+  `;
+  if(!profiles.length){$('hc-coaches').innerHTML='<div class="empty"><div class="eico">👥</div>No hay entrenadores</div>';return;}
+  $('hc-coaches').innerHTML=profiles.map(p=>{
+    const cc=clients.filter(c=>c.coach_id===p.id);
+    const cm=calcM(cc);
+    const rows=cc.filter(c=>c.status!=='inactivo').map(c=>{
+      const st=cStatus(c);
+      const r=tracking[tk(c.id,wks)]||{};
+      const tr=WF.filter(f=>r[f+'_train']).length;
+      const loss=totLoss(c);
+      const ls=loss!==null?(loss>=0?`<span style="color:var(--te)">-${loss.toFixed(1)}kg</span>`:`<span style="color:var(--re)">+${Math.abs(loss).toFixed(1)}kg</span>`):'—';
+      return`<tr><td style="padding:8px 14px">${fname(c)}</td><td style="padding:8px 14px"><span class="badge ${st.cls}">${st.l}</span></td><td style="padding:8px 14px;text-align:center">${tr}/7</td><td style="padding:8px 14px;text-align:center">${ls}</td></tr>`;
+    }).join('');
+    const ini=(p.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return`<div class="coachblock">
+      <div class="cbhdr" onclick="toggleCB('cb-${p.id}')">
+        <div class="cbleft">
+          <div class="cav">${ini}</div>
+          <div class="cbinfo"><h4>${p.name||p.id}</h4><small>${cc.length} clientas · ${cm.total} activas · <span class="crole ${p.role==='head_coach'?'rhc':'rco'}">${p.role==='head_coach'?'Head Coach':'Entrenador/a'}</span></small></div>
+        </div>
+        <span class="cbarrow" id="arr-${p.id}">›</span>
+      </div>
+      <div class="cbbody" id="cb-${p.id}">
+        ${rows?`<div style="padding:0 0 0"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border-bottom:0.5px solid var(--b);text-transform:uppercase">Clienta</th><th style="padding:8px 14px;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border-bottom:0.5px solid var(--b);text-transform:uppercase">Estado</th><th style="padding:8px 14px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border-bottom:0.5px solid var(--b);text-transform:uppercase">Entrenos</th><th style="padding:8px 14px;text-align:center;font-size:11px;font-weight:600;color:var(--text2);background:var(--bg3);border-bottom:0.5px solid var(--b);text-transform:uppercase">Pérdida</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div style="padding:12px 16px;font-size:12px;color:var(--text3)">Sin clientas activas</div>'}
+        <div class="cbadd" onclick="openModalForCoach('${p.id}','${(p.name||'').replace(/'/g,"\\'")}')">+ Añadir clienta a ${p.name||'este entrenador'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleCB(id){
+  const body=document.getElementById(id);
+  const pid=id.replace('cb-','');
+  const arr=document.getElementById('arr-'+pid);
+  if(!body)return;
+  const op=body.classList.toggle('op');
+  if(arr)arr.classList.toggle('op',op);
+}
+
+function renderHCCoaches(){
+  const list=$('coaches-list');
+  if(!profiles.length){list.innerHTML='<div class="empty"><div class="eico">👥</div>No hay entrenadores</div>';return;}
+  list.innerHTML=profiles.map(p=>{
+    const ini=(p.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const nc=clients.filter(c=>c.coach_id===p.id).length;
+    const email=p.email||'—';
+    return`<div style="background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="cav">${ini}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500">${p.name||'Sin nombre'}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${email}</div>
+        </div>
+        <span class="crole ${p.role==='head_coach'?'rhc':'rco'}">${p.role==='head_coach'?'Head Coach':'Entrenador/a'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text2);">
+        <div>Clientas asignadas: <strong style="color:var(--text)">${nc}</strong></div>
+        <div>Clientas activas: <strong style="color:var(--text)">${clients.filter(c=>c.coach_id===p.id&&c.status!=='inactivo').length}</strong></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn sm pri" onclick="resetPassword('${p.id}','${(p.name||'').replace(/'/g,"\'")}')">🔑 Cambiar contraseña</button>
+        ${p.id!==user.id?`<button class="btn sm dan" onclick="deleteCoach('${p.id}','${(p.name||'').replace(/'/g,"\'")}')">Eliminar</button>`:'<span style="font-size:11px;color:var(--text3);padding:5px 0">Esta es tu cuenta</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function createCoach(){
+  const name=$('nc-name').value.trim(),email=$('nc-email').value.trim(),pass=$('nc-pass').value.trim(),role=$('nc-role').value;
+  const st=$('nc-st');
+  if(!name||!email||!pass){st.style.display='block';st.style.color='var(--re)';st.textContent='Rellena todos los campos';return;}
+  if(pass.length<6){st.style.display='block';st.style.color='var(--re)';st.textContent='Contraseña mínimo 6 caracteres';return;}
+  st.style.display='block';st.style.color='var(--text2)';st.textContent='Creando cuenta...';
+  try{
+    const{data,error}=await sb.auth.signUp({email,password:pass});
+    if(error)throw error;
+    if(data.user)await sb.from('profiles').upsert({id:data.user.id,name,role,email});
+    st.style.color='var(--te)';st.textContent=`✓ Cuenta creada para ${name}`;
+    $('nc-name').value='';$('nc-email').value='';$('nc-pass').value='';
+    const{data:p}=await sb.from('profiles').select('*');profiles=p||[];
+    renderHCCoaches();
+  }catch(e){st.style.color='var(--re)';st.textContent='Error: '+e.message;}
+}
+
+// COACH MANAGEMENT
+async function resetPassword(coachId, coachName){
+  const newPass=prompt(`Nueva contraseña para ${coachName} (mínimo 6 caracteres):`);
+  if(!newPass)return;
+  if(newPass.length<6){alert('La contraseña debe tener al menos 6 caracteres');return;}
+  try{
+    const{error}=await sb.auth.admin.updateUserById(coachId,{password:newPass});
+    if(error)throw error;
+    alert(`✓ Contraseña cambiada para ${coachName}`);
+  }catch(e){
+    // Fallback: use service role not available, show manual instruction
+    alert(`No se puede cambiar la contraseña directamente. Envía un email de recuperación a ${coachName} usando el botón de recuperación en el login.`);
+  }
+}
+
+async function deleteCoach(coachId, coachName){
+  const cc=clients.filter(c=>c.coach_id===coachId).length;
+  const msg=cc>0?`¿Eliminar a ${coachName}? Tiene ${cc} clientas asignadas que quedarán sin entrenador.`:`¿Eliminar a ${coachName}?`;
+  if(!confirm(msg))return;
+  sync('saving');
+  // Unassign clients
+  if(cc>0)await sb.from('clients').update({coach_id:user.id}).eq('coach_id',coachId);
+  await sb.from('profiles').delete().eq('id',coachId);
+  profiles=profiles.filter(p=>p.id!==coachId);
+  // Update local clients
+  clients.forEach(c=>{if(c.coach_id===coachId)c.coach_id=user.id;});
+  sync('ok');
+  renderHCCoaches();
+}
+
+// OKRs
+function renderOKRs(){
+  const dates=weekDates(okrOff);
+  $('okr-lbl').textContent=`${dates[0].getDate()}/${dates[0].getMonth()+1} — ${dates[6].getDate()}/${dates[6].getMonth()+1}/${dates[6].getFullYear()}`;
+  const wks=dk(dates[0]);
+  const active=clients.filter(c=>c.status!=='inactivo'&&cWeek(c)>0);
+  const total=active.length;
+  let t3=0,v3=0,l12=0,dl30=0;
+  for(const c of active){
+    const r=tracking[tk(c.id,wks)]||{};
+    const tr=WF.filter(f=>r[f+'_train']).length;
+    const vi=WF.filter(f=>r[f+'_video']).length;
+    if(tr>=3){t3++;if(vi>=3)v3++;}
+    if(r.deadlift30)dl30++;
+    const loss=totLoss(c);if(loss!==null&&loss>=12)l12++;
+  }
+  const bar=(v,col)=>`<div class="okrbar"><div class="okrfill" style="width:${v}%;background:${col}"></div></div>`;
+  $('okr-grid').innerHTML=`
+    <div class="okrc"><div class="okrl">Clientas activas</div><div class="okrv" style="color:var(--pu)">${total}</div><div class="okrs">superaron semana 0</div></div>
+    <div class="okrc"><div class="okrl">Entrenan 3+ días</div><div class="okrv" style="color:var(--te)">${pct(t3,total)}%</div><div class="okrp">${t3} de ${total}</div>${bar(pct(t3,total),'var(--te)')}</div>
+    <div class="okrc"><div class="okrl">Vídeo 3 días</div><div class="okrv" style="color:var(--pu)">${pct(v3,total)}%</div><div class="okrp">${v3} de ${total}</div>${bar(pct(v3,total),'var(--pu)')}</div>
+    <div class="okrc"><div class="okrl">Perdieron 12+ kg</div><div class="okrv" style="color:var(--co)">${pct(l12,total)}%</div><div class="okrp">${l12} de ${total}</div>${bar(pct(l12,total),'var(--co)')}</div>
+    <div class="okrc"><div class="okrl">Peso muerto +30kg</div><div class="okrv" style="color:var(--am)">${dl30}</div><div class="okrs">lo superaron</div></div>
+  `;
+  if(!active.length){$('okr-detail').innerHTML='<div class="empty"><div class="eico">📊</div>Sin clientas activas</div>';return;}
+  const rows=active.map(c=>{
+    const r=tracking[tk(c.id,wks)]||{};
+    const tr=WF.filter(f=>r[f+'_train']).length;
+    const vi=WF.filter(f=>r[f+'_video']).length;
+    const loss=totLoss(c);
+    const ls=loss!==null?(loss>=0?`<span style="color:var(--te)">-${loss.toFixed(1)}kg</span>`:`<span style="color:var(--re)">+${Math.abs(loss).toFixed(1)}kg</span>`):'—';
+    return`<tr><td><strong>${fname(c)}</strong></td><td style="text-align:center">${tr}/7</td><td style="text-align:center">${tr>=3?'<span style="color:var(--te)">✓</span>':'✗'}</td><td style="text-align:center">${vi}</td><td style="text-align:center">${vi>=3?'<span style="color:var(--pu)">✓</span>':'✗'}</td><td style="text-align:center">${ls}</td><td style="text-align:center">${loss!==null&&loss>=12?'<span style="color:var(--co)">✓</span>':'✗'}</td><td style="text-align:center">${r.deadlift30?'✓':'—'}</td></tr>`;
+  }).join('');
+  $('okr-detail').innerHTML=`<div class="tw"><table><thead><tr><th>Clienta</th><th>Días</th><th>3d✓</th><th>Vídeos</th><th>V3✓</th><th>Pérdida</th><th>12kg</th><th>PM30</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function okrNav(d){okrOff+=d;if(curPage==='hc-overview')renderHCOverview();else renderOKRs();}
+
+// CLIENTS
+function renderClients(){
+  const q=($('csearch')?.value||'').toLowerCase();
+  const list=clients.filter(c=>!q||fname(c).toLowerCase().includes(q));
+  if(!clients.length){
+    $('clients-wrap').innerHTML=`<div class="empty"><div class="eico">👤</div><p style="margin-bottom:16px">No tienes clientas todavía</p><button class="btn pri" onclick="openModal()">+ Añadir primera clienta</button></div>`;
+    return;
+  }
+  if(!list.length){$('clients-wrap').innerHTML='<div class="empty"><div class="eico">🔍</div>Sin resultados</div>';return;}
+  if(isMob()){
+    $('clients-wrap').innerHTML=list.map(c=>{
+      const st=cStatus(c);
+      return`<div class="card">
+        <div class="card-hdr"><div><div class="card-name">${fname(c)}</div>${c.phone?`<div style="font-size:12px;color:var(--text2)">${c.phone}</div>`:''}</div><span class="badge ${st.cls}">${st.l}</span></div>
+        <div class="card-grid">
+          <div>Semana: <strong>${cWeek(c)}</strong></div><div>Duración: <strong>${c.duration||3}m</strong></div>
+          <div>Inicio: <strong>${c.start_date||'—'}</strong></div><div>Peso ini.: <strong>${c.weight_init?c.weight_init+'kg':'—'}</strong></div>
+          <div>1º Menú: <strong>${c.menu1_date||'—'}</strong></div><div>1ª Plan.: <strong>${c.plan1_date||'—'}</strong></div>
+        </div>
+        <div class="card-actions">
+          <button class="btn sm pri" onclick="openEditModal(${c.id})">✏️ Editar</button>
+          <button class="btn sm dan" onclick="deleteClient(${c.id})">Eliminar</button>
+        </div>
+      </div>`;
+    }).join('');
+  }else{
+    const rows=list.map(c=>{
+      const st=cStatus(c);
+      return`<tr><td><strong>${fname(c)}</strong>${c.phone?`<br><span style="font-size:11px;color:var(--text2)">${c.phone}</span>`:''}</td><td><span class="badge ${st.cls}">${st.l}</span></td><td>Sem. ${cWeek(c)}</td><td>${c.start_date||'—'}</td><td>${c.menu1_date||'—'}</td><td>${c.plan1_date||'—'}</td><td>${c.duration||3}m</td><td>${c.weight_init?c.weight_init+'kg':'—'}</td><td style="white-space:nowrap"><button class="btn sm pri" onclick="openEditModal(${c.id})" style="margin-right:4px">✏️</button><button class="btn sm dan" onclick="deleteClient(${c.id})">✕</button></td></tr>`;
+    }).join('');
+    $('clients-wrap').innerHTML=`<div class="tw"><table><thead><tr><th>Clienta</th><th>Estado</th><th>Semana</th><th>Inicio</th><th>1º Menú</th><th>1ª Plan.</th><th>Dur.</th><th>Peso ini.</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+}
+
+// TRACKING
+function renderTracking(){
+  const dates=weekDates(weekOff);
+  $('w-lbl').textContent=`${dates[0].getDate()}/${dates[0].getMonth()+1} — ${dates[6].getDate()}/${dates[6].getMonth()+1}`;
+  const q=($('tsearch')?.value||'').toLowerCase();
+  const list=activeClients().filter(c=>!q||fname(c).toLowerCase().includes(q));
+  if(!list.length){$('ttable').innerHTML='<div class="empty"><div class="eico">🏋️</div>'+(q?'Sin resultados':'Sin clientas activas')+'</div>';$('tcards').innerHTML='';return;}
+  const wks=dk(dates[0]);
+
+  if(tmode==='weight'){
+    const content=list.map(c=>{
+      const r=tracking[tk(c.id,wks)]||{};
+      const wval=r.weight!=null?r.weight:'',comm=r.weight_comment||'';
+      const pr=tracking[tk(c.id,dk(monWeek(weekOff-1)))]||{};
+      let delta='—';
+      if(r.weight!=null&&pr.weight!=null){const diff=(r.weight-pr.weight).toFixed(1);const cls=diff<0?'wdn':'wup';delta=`<span class="${cls}">${diff>0?'+':''}${diff}kg</span>`;}
+      const loss=totLoss(c);
+      const ls=loss!==null?(loss>=0?`<span style="color:var(--te);font-weight:500">-${loss.toFixed(1)}kg</span>`:`<span style="color:var(--re);font-weight:500">+${Math.abs(loss).toFixed(1)}kg</span>`):'—';
+      if(isMob())return`<div class="wcard"><div style="font-size:14px;font-weight:500;margin-bottom:10px">${fname(c)}</div><div class="wrow"><span class="wlb">Peso ini.: ${c.weight_init?c.weight_init+'kg':'—'}</span></div><div class="wrow"><span class="wlb">Esta semana:</span><input class="wi" type="number" step="0.1" placeholder="kg" value="${wval}" inputmode="decimal" onchange="saveWeight(${c.id},'${wks}',this.value)"><span>${delta}</span></div><div class="wrow"><span class="wlb">Pérdida total:</span>${ls}</div><div class="wrow"><input class="ci" type="text" placeholder="Comentario..." value="${comm}" onchange="saveComment(${c.id},'${wks}',this.value)"></div></div>`;
+      return`<tr><td><strong>${fname(c)}</strong></td><td>${c.weight_init?c.weight_init+'kg':'—'}</td><td><input class="wi" type="number" step="0.1" placeholder="kg" value="${wval}" inputmode="decimal" onchange="saveWeight(${c.id},'${wks}',this.value)"></td><td>${delta}</td><td>${ls}</td><td><input class="ci" type="text" placeholder="Comentario..." value="${comm}" onchange="saveComment(${c.id},'${wks}',this.value)"></td></tr>`;
+    });
+    if(isMob()){$('ttable').innerHTML='';$('tcards').innerHTML=content.join('');}
+    else{$('tcards').innerHTML='';$('ttable').innerHTML=`<table><thead><tr><th>Clienta</th><th>Peso ini.</th><th>Esta semana</th><th>Variación</th><th>Pérdida total</th><th>Comentario</th></tr></thead><tbody>${content.join('')}</tbody></table>`;}
+    return;
+  }
+  if(tmode==='dl'){
+    const content=list.map(c=>{
+      const r=tracking[tk(c.id,wks)]||{},on=r.deadlift30||false;
+      if(isMob())return`<div class="dlcard"><div style="flex:1;font-size:14px;font-weight:500">${fname(c)}</div><div class="dc ${on?'dl':''}" style="width:44px;height:44px;font-size:16px" onclick="toggleDL(${c.id},'${wks}')">${on?'✓':''}</div><div>${on?'<span style="color:var(--am);font-weight:500">✓ +30kg</span>':'<span style="color:var(--text3)">Aún no</span>'}</div></div>`;
+      return`<tr><td><strong>${fname(c)}</strong></td><td style="text-align:center"><div class="dc ${on?'dl':''}" onclick="toggleDL(${c.id},'${wks}')">${on?'✓':''}</div></td><td>${on?'<span style="color:var(--am);font-weight:500">✓ Supera 30kg</span>':'<span style="color:var(--text3)">Aún no</span>'}</td></tr>`;
+    });
+    if(isMob()){$('ttable').innerHTML='';$('tcards').innerHTML=content.join('');}
+    else{$('tcards').innerHTML='';$('ttable').innerHTML=`<table><thead><tr><th>Clienta</th><th style="text-align:center">¿Supera 30kg?</th><th>Estado</th></tr></thead><tbody>${content.join('')}</tbody></table>`;}
+    return;
+  }
+  const field=tmode==='train'?'_train':'_video';
+  if(isMob()){
+    $('ttable').innerHTML='';
+    $('tcards').innerHTML=list.map(c=>{
+      const r=tracking[tk(c.id,wks)]||{};const st=cStatus(c);let count=0;
+      const days=WF.map((f,i)=>{const on=r[f+field]||false;if(on)count++;const cls=tmode==='train'?(on?'tr':''):(on?'vi':'');return`<div class="dc ${cls}" onclick="toggleDay(${c.id},'${wks}','${f+field}')">${on?(tmode==='train'?'✓':'●'):''}</div>`;}).join('');
+      return`<div class="tcard"><div class="tcard-hdr"><div style="font-size:14px;font-weight:500">${fname(c)}</div><span class="badge ${st.cls}">${st.l}</span></div><div class="tcard-days">${DAYS.map(d=>`<div class="tcard-dow">${d}</div>`).join('')}</div><div class="tcard-days">${days}</div><div class="tcard-total">${count} día${count!==1?'s':''} esta semana</div></div>`;
+    }).join('');
+  }else{
+    $('tcards').innerHTML='';
+    const hdrs=dates.map((d,i)=>`<th>${DAYS_F[i]}<br><span style="font-weight:400;font-size:10px">${d.getDate()}/${d.getMonth()+1}</span></th>`).join('');
+    const rows=list.map(c=>{
+      const r=tracking[tk(c.id,wks)]||{};const st=cStatus(c);let count=0;
+      const cells=WF.map(f=>{const on=r[f+field]||false;if(on)count++;const cls=tmode==='train'?(on?'tr':''):(on?'vi':'');return`<td><div class="dc ${cls}" onclick="toggleDay(${c.id},'${wks}','${f+field}')">${on?(tmode==='train'?'✓':'●'):''}</div></td>`;}).join('');
+      return`<tr><td><strong>${fname(c)}</strong><br><span class="badge ${st.cls}">${st.l}</span></td>${cells}<td style="text-align:center;font-weight:600">${count}</td></tr>`;
+    }).join('');
+    $('ttable').innerHTML=`<table><thead><tr><th>Clienta</th>${hdrs}<th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+}
+function wNav(d){weekOff+=d;renderTracking();}
+function setMode(m,el){tmode=m;document.querySelectorAll('.mt').forEach(t=>t.classList.remove('on'));el.classList.add('on');renderTracking();}
+
+async function toggleDay(cid,wks,field){
+  const k=tk(cid,wks),cur=tracking[k]||{},nv=!cur[field];sync('saving');
+  if(cur.id){await sb.from('tracking').update({[field]:nv}).eq('id',cur.id);tracking[k]={...cur,[field]:nv};}
+  else{const{data}=await sb.from('tracking').insert({client_id:cid,week_start:wks,[field]:nv}).select().single();if(data)tracking[k]=data;}
+  sync('ok');renderTracking();
+}
+async function toggleDL(cid,wks){
+  const k=tk(cid,wks),cur=tracking[k]||{},nv=!cur.deadlift30;sync('saving');
+  if(cur.id){await sb.from('tracking').update({deadlift30:nv}).eq('id',cur.id);tracking[k]={...cur,deadlift30:nv};}
+  else{const{data}=await sb.from('tracking').insert({client_id:cid,week_start:wks,deadlift30:nv}).select().single();if(data)tracking[k]=data;}
+  sync('ok');renderTracking();if(curPage==='okrs')renderOKRs();
+}
+async function saveWeight(cid,wks,val){
+  const k=tk(cid,wks),cur=tracking[k]||{},weight=parseFloat(val)||null;sync('saving');
+  if(cur.id){await sb.from('tracking').update({weight}).eq('id',cur.id);tracking[k]={...cur,weight};}
+  else{const{data}=await sb.from('tracking').insert({client_id:cid,week_start:wks,weight}).select().single();if(data)tracking[k]=data;}
+  sync('ok');if(curPage==='okrs')renderOKRs();
+}
+async function saveComment(cid,wks,val){
+  const k=tk(cid,wks),cur=tracking[k]||{};sync('saving');
+  if(cur.id){await sb.from('tracking').update({weight_comment:val}).eq('id',cur.id);tracking[k]={...cur,weight_comment:val};}
+  else{const{data}=await sb.from('tracking').insert({client_id:cid,week_start:wks,weight_comment:val}).select().single();if(data)tracking[k]=data;}
+  sync('ok');
+}
+
+// REQUESTS
+function renderRequests(){
+  $('wa-cl').innerHTML='<option value="">— Seleccionar clienta —</option>'+clients.filter(c=>c.status!=='inactivo').map(c=>`<option value="${c.id}">${fname(c)}</option>`).join('');
+  if(!requests.length){$('reqs-wrap').innerHTML='<div class="empty"><div class="eico">✅</div>Sin solicitudes</div>';return;}
+  const pend=requests.filter(r=>!r.done),done=requests.filter(r=>r.done);
+  const ri=items=>items.map(r=>`<div class="ri"><div class="rck ${r.done?'dn':''}" onclick="toggleReq(${r.id})">${r.done?'✓':''}</div><div class="rinfo"><div class="rtask ${r.done?'dn':''}">${r.task}</div>${r.description?`<div class="rdesc">${r.description}</div>`:''}<div class="rcl">📱 ${r.client_name}</div></div><button class="btn sm dan" onclick="delReq(${r.id})">✕</button></div>`).join('');
+  $('reqs-wrap').innerHTML=(pend.length?`<div class="rsec"><h3>Pendiente (${pend.length})</h3>${ri(pend)}</div>`:'')+( done.length?`<div class="rsec"><h3>Completado (${done.length})</h3>${ri(done)}</div>`:'');
+}
+async function toggleReq(id){const r=requests.find(r=>r.id===id);if(!r)return;sync('saving');await sb.from('requests').update({done:!r.done}).eq('id',id);r.done=!r.done;sync('ok');renderRequests();}
+async function delReq(id){sync('saving');await sb.from('requests').delete().eq('id',id);requests=requests.filter(r=>r.id!==id);sync('ok');renderRequests();}
+async function analyzeWA(){
+  const text=$('wa-msg').value.trim(),cid=$('wa-cl').value;
+  if(!text)return alert('Escribe o pega un mensaje');
+  const cn=cid?clients.find(c=>c.id==cid):null,nm=cn?fname(cn):'Clienta';
+  const st=$('wa-st');st.style.display='block';st.textContent='⏳ Analizando...';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Analiza este mensaje de WhatsApp de una clienta de entrenamiento y extrae TODAS las solicitudes. Responde SOLO con JSON sin markdown: {"tasks":[{"task":"título corto","desc":"descripción breve"}]}. Mensaje: "${text}"`}]})});
+    const d=await res.json();
+    let raw=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(raw);sync('saving');
+    for(const t of parsed.tasks){const{data:row}=await sb.from('requests').insert({task:t.task,description:t.desc,client_name:nm,client_id:cid||null,coach_id:user.id,done:false}).select().single();if(row)requests.push(row);}
+    sync('ok');$('wa-msg').value='';st.textContent=`✅ ${parsed.tasks.length} tarea(s) añadida(s)`;setTimeout(()=>st.style.display='none',3000);renderRequests();
+  }catch(e){st.textContent='❌ Error al analizar.';sync('err');}
+}
+
+// MODAL
+function fillCoachSelect(selectedId){
+  $('modal-coach').innerHTML=profiles.map(p=>`<option value="${p.id}" ${p.id===selectedId?'selected':''}>${p.name||p.id} (${p.role==='head_coach'?'Head Coach':'Entrenador/a'})</option>`).join('');
+}
+function clearForm(){['fn','fs','fph','fno','fwi','fm1','fp1'].forEach(id=>$(id).value='');$('fdu').value='3';$('fst2').value='activo';}
+
+function openModal(){
+  editId=null;modalCoachId=null;
+  $('modal-title').textContent='Añadir clienta';
+  $('modal-info').style.display='none';
+  $('modal-coach-row').style.display=isHC()?'block':'none';
+  if(isHC())fillCoachSelect(user.id);
+  clearForm();
+  $('fst').value=new Date().toISOString().split('T')[0];
+  $('mbg').classList.add('on');
+}
+function openModalForCoach(coachId,coachName){
+  editId=null;modalCoachId=coachId;
+  $('modal-title').textContent='Añadir clienta';
+  $('modal-info').style.display='block';
+  $('modal-info').textContent='Asignando a: '+coachName;
+  $('modal-coach-row').style.display=isHC()?'block':'none';
+  if(isHC())fillCoachSelect(coachId);
+  clearForm();
+  $('fst').value=new Date().toISOString().split('T')[0];
+  $('mbg').classList.add('on');
+}
+function openEditModal(clientId){
+  const c=clients.find(x=>x.id===clientId);if(!c)return;
+  editId=clientId;modalCoachId=null;
+  $('modal-title').textContent='Editar clienta';
+  $('modal-info').style.display='none';
+  $('modal-coach-row').style.display=isHC()?'block':'none';
+  if(isHC())fillCoachSelect(c.coach_id);
+  $('fn').value=c.name||'';$('fs').value=c.surname||'';$('fph').value=c.phone||'';
+  $('fdu').value=c.duration||3;$('fst').value=c.start_date||'';
+  $('fm1').value=c.menu1_date||'';$('fp1').value=c.plan1_date||'';
+  $('fwi').value=c.weight_init||'';$('fst2').value=c.status||'activo';$('fno').value=c.notes||'';
+  $('mbg').classList.add('on');
+}
+function closeModal(){$('mbg').classList.remove('on');editId=null;modalCoachId=null;}
+
+async function saveClient(){
+  const name=$('fn').value.trim();if(!name)return alert('El nombre es obligatorio');
+  const assignedCoachId=isHC()?($('modal-coach').value||user.id):(modalCoachId||user.id);
+  const c={name,surname:$('fs').value.trim()||null,phone:$('fph').value.trim()||null,
+    start_date:$('fst').value||null,menu1_date:$('fm1').value||null,plan1_date:$('fp1').value||null,
+    duration:parseInt($('fdu').value),weight_init:parseFloat($('fwi').value)||null,
+    status:$('fst2').value,notes:$('fno').value.trim()||null,coach_id:assignedCoachId};
+  sync('saving');
+  if(editId){
+    const{error}=await sb.from('clients').update(c).eq('id',editId);
+    if(error){alert('Error: '+error.message);sync('err');return;}
+    const idx=clients.findIndex(x=>x.id===editId);
+    if(idx>=0)clients[idx]={...clients[idx],...c};
+  }else{
+    const{data,error}=await sb.from('clients').insert(c).select().single();
+    if(error){alert('Error: '+error.message);sync('err');return;}
+    clients.push(data);
+  }
+  sync('ok');closeModal();renderClients();
+  if(curPage==='hc-coaches')renderHCCoaches();
+  if(curPage==='hc-overview')renderHCOverview();
+}
+async function deleteClient(id){
+  if(!confirm('¿Eliminar esta clienta y todos sus datos?'))return;
+  sync('saving');
+  await Promise.all([sb.from('clients').delete().eq('id',id),sb.from('tracking').delete().eq('client_id',id)]);
+  clients=clients.filter(c=>c.id!==id);
+  Object.keys(tracking).forEach(k=>{if(k.startsWith(id+'_'))delete tracking[k];});
+  sync('ok');renderClients();
+  if(curPage==='hc-coaches')renderHCCoaches();
+  if(curPage==='hc-overview')renderHCOverview();
+}
+
+// RESIZE
+let rt;
+window.addEventListener('resize',()=>{
+  clearTimeout(rt);rt=setTimeout(()=>{
+    const mn=$('mobnav');if(mn&&user)mn.style.display=isMob()?'flex':'none';
+    if(curPage==='seguimiento')renderTracking();
+    if(curPage==='clientes')renderClients();
+  },200);
+});
+
+$('li-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+$('rg-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  $('loader').style.display='none';
+  if(session?.user)await afterLogin(session.user);
+  else $('login').classList.add('on');
+}
+init();
+</script>
+</body>
+</html>
