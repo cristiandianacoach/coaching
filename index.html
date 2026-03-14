@@ -584,7 +584,7 @@ async function doRegister(){
   btn.textContent='Crear cuenta';btn.disabled=false;
   if(error){$('lerr').style.color='var(--re)';$('lerr').textContent=error.message;return;}
   if(data.user){
-    await sb.from('profiles').upsert({id:data.user.id,name,role});
+    await sb.from('profiles').upsert({id:data.user.id,name,role,email});
     $('lerr').style.color='var(--te)';$('lerr').textContent='✓ Cuenta creada. Entrando...';
     setTimeout(()=>afterLogin(data.user),800);
   }
@@ -794,11 +794,29 @@ function toggleCB(id){
 function renderHCCoaches(){
   const list=$('coaches-list');
   if(!profiles.length){list.innerHTML='<div class="empty"><div class="eico">👥</div>No hay entrenadores</div>';return;}
-  list.innerHTML=`<div style="background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);overflow:hidden;">`+profiles.map(p=>{
+  list.innerHTML=profiles.map(p=>{
     const ini=(p.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const nc=clients.filter(c=>c.coach_id===p.id).length;
-    return`<div class="crow"><div class="cav">${ini}</div><div class="cinfo"><div class="cname">${p.name||'Sin nombre'}</div><div class="cemail">${nc} clientas</div></div><span class="crole ${p.role==='head_coach'?'rhc':'rco'}">${p.role==='head_coach'?'Head Coach':'Entrenador/a'}</span></div>`;
-  }).join('')+'</div>';
+    const email=p.email||'—';
+    return`<div style="background:var(--bg2);border:0.5px solid var(--b);border-radius:var(--rl);padding:16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="cav">${ini}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:500">${p.name||'Sin nombre'}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">${email}</div>
+        </div>
+        <span class="crole ${p.role==='head_coach'?'rhc':'rco'}">${p.role==='head_coach'?'Head Coach':'Entrenador/a'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text2);">
+        <div>Clientas asignadas: <strong style="color:var(--text)">${nc}</strong></div>
+        <div>Clientas activas: <strong style="color:var(--text)">${clients.filter(c=>c.coach_id===p.id&&c.status!=='inactivo').length}</strong></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn sm pri" onclick="resetPassword('${p.id}','${(p.name||'').replace(/'/g,"\'")}')">🔑 Cambiar contraseña</button>
+        ${p.id!==user.id?`<button class="btn sm dan" onclick="deleteCoach('${p.id}','${(p.name||'').replace(/'/g,"\'")}')">Eliminar</button>`:'<span style="font-size:11px;color:var(--text3);padding:5px 0">Esta es tu cuenta</span>'}
+      </div>
+    </div>`;
+  }).join('');
 }
 async function createCoach(){
   const name=$('nc-name').value.trim(),email=$('nc-email').value.trim(),pass=$('nc-pass').value.trim(),role=$('nc-role').value;
@@ -809,12 +827,42 @@ async function createCoach(){
   try{
     const{data,error}=await sb.auth.signUp({email,password:pass});
     if(error)throw error;
-    if(data.user)await sb.from('profiles').upsert({id:data.user.id,name,role});
+    if(data.user)await sb.from('profiles').upsert({id:data.user.id,name,role,email});
     st.style.color='var(--te)';st.textContent=`✓ Cuenta creada para ${name}`;
     $('nc-name').value='';$('nc-email').value='';$('nc-pass').value='';
     const{data:p}=await sb.from('profiles').select('*');profiles=p||[];
     renderHCCoaches();
   }catch(e){st.style.color='var(--re)';st.textContent='Error: '+e.message;}
+}
+
+// COACH MANAGEMENT
+async function resetPassword(coachId, coachName){
+  const newPass=prompt(`Nueva contraseña para ${coachName} (mínimo 6 caracteres):`);
+  if(!newPass)return;
+  if(newPass.length<6){alert('La contraseña debe tener al menos 6 caracteres');return;}
+  try{
+    const{error}=await sb.auth.admin.updateUserById(coachId,{password:newPass});
+    if(error)throw error;
+    alert(`✓ Contraseña cambiada para ${coachName}`);
+  }catch(e){
+    // Fallback: use service role not available, show manual instruction
+    alert(`No se puede cambiar la contraseña directamente. Envía un email de recuperación a ${coachName} usando el botón de recuperación en el login.`);
+  }
+}
+
+async function deleteCoach(coachId, coachName){
+  const cc=clients.filter(c=>c.coach_id===coachId).length;
+  const msg=cc>0?`¿Eliminar a ${coachName}? Tiene ${cc} clientas asignadas que quedarán sin entrenador.`:`¿Eliminar a ${coachName}?`;
+  if(!confirm(msg))return;
+  sync('saving');
+  // Unassign clients
+  if(cc>0)await sb.from('clients').update({coach_id:user.id}).eq('coach_id',coachId);
+  await sb.from('profiles').delete().eq('id',coachId);
+  profiles=profiles.filter(p=>p.id!==coachId);
+  // Update local clients
+  clients.forEach(c=>{if(c.coach_id===coachId)c.coach_id=user.id;});
+  sync('ok');
+  renderHCCoaches();
 }
 
 // OKRs
